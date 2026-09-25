@@ -6,3 +6,7 @@ DerivedData/
 *.xcodeproj/
 *.xcworkspace/
 xcuserdata/
+App/Info.plist
+App/*.entitlements
+Extension/Info.plist
+Extension/*.entitlements

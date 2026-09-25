@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  edlkit-linux:
+    name: EDLKit tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.4
+    steps:
+      - uses: actions/checkout@v7
+      - run: swift test --package-path EDLKit
+
+  macos:
+    name: Build and test (macOS)
+    runs-on: macos-latest
+    env:
+      APP: build/Build/Products/Release/EDL Preview.app
+      APPEX: build/Build/Products/Release/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex
+      NOTARIZE: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.MACOS_CERTIFICATE_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Toolchain versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: EDLKit tests
+        run: swift test --package-path EDLKit
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build
+        run: |
+          xcodebuild -project EDLPreview.xcodeproj -scheme EDLPreview -configuration Release \
+            -derivedDataPath build -destination "generic/platform=macOS" \
+            CODE_SIGN_IDENTITY=- build > build.log 2>&1 || { grep -E "error:|warning:" build.log; tail -50 build.log; exit 1; }
+          grep -E "warning:" build.log || true
+          tail -3 build.log
+
+      - name: Verify bundle
+        run: |
+          test -d "$APPEX"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          plutil -extract NSExtension.NSExtensionPointIdentifier raw "$APPEX/Contents/Info.plist"
+          plutil -extract NSExtension.NSExtensionAttributes.QLSupportedContentTypes json "$APPEX/Contents/Info.plist"
+          plutil -extract UTImportedTypeDeclarations json "$APP/Contents/Info.plist"
+          codesign -d --entitlements - "$APPEX"
+
+      - name: Quick Look smoke test
+        continue-on-error: true
+        run: |
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R "$APP"
+          pluginkit -a "$APPEX"
+          pluginkit -m -v -p com.apple.quicklook.preview | grep -i edl || true
+          mkdir -p ql-out
+          qlmanage -r
+          qlmanage -p -o ql-out EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl
+          find ql-out -type f -print
+          grep -rl "Timeline 1" ql-out
+
+      - name: Import signing certificate
+        if: env.NOTARIZE == 'true'
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Sign with Developer ID
+        if: env.NOTARIZE == 'true'
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --timestamp --options runtime --entitlements Extension/EDLPreviewExtension.entitlements -s "$MACOS_SIGNING_IDENTITY" "$APPEX"
+          codesign --force --timestamp --options runtime --entitlements App/EDLPreview.entitlements -s "$MACOS_SIGNING_IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Notarize
+        if: env.NOTARIZE == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          ditto -c -k --keepParent "$APP" notarize.zip
+          xcrun notarytool submit notarize.zip --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+          xcrun stapler staple "$APP"
+          rm notarize.zip
+
+      - name: Package
+        run: ditto -c -k --keepParent "$APP" EDL-Preview.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: EDL-Preview
+          path: EDL-Preview.zip
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: diagnostics
+          path: |
+            build.log
+            ql-out
+          if-no-files-found: ignore
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [edlkit-linux, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: EDL-Preview
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" EDL-Preview.zip --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

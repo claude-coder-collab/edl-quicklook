@@ -1,0 +1,74 @@
+name: EDLPreview
+options:
+  bundleIdPrefix: io.github.claude-coder-collab
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+packages:
+  EDLKit:
+    path: EDLKit
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    DEAD_CODE_STRIPPING: YES
+targets:
+  EDLPreview:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - target: EDLPreviewExtension
+    settings:
+      base:
+        PRODUCT_NAME: EDL Preview
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.claude-coder-collab.EDLPreview
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: EDL Preview
+        LSApplicationCategoryType: public.app-category.video
+        NSHumanReadableCopyright: Copyright © claude-coder-collab. MIT licence.
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.cmx3600.edl
+            UTTypeDescription: CMX3600 Edit Decision List
+            UTTypeConformsTo: [public.plain-text]
+            UTTypeTagSpecification:
+              public.filename-extension: [edl, EDL]
+    entitlements:
+      path: App/EDLPreview.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+    scheme: {}
+  EDLPreviewExtension:
+    type: app-extension
+    platform: macOS
+    sources: [Extension]
+    dependencies:
+      - package: EDLKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.claude-coder-collab.EDLPreview.PreviewExtension
+    info:
+      path: Extension/Info.plist
+      properties:
+        CFBundleDisplayName: EDL Preview
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewProvider
+          NSExtensionAttributes:
+            QLIsDataBasedPreview: true
+            QLSupportsSearchableItems: false
+            QLSupportedContentTypes: [com.cmx3600.edl]
+    entitlements:
+      path: Extension/EDLPreviewExtension.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-only: true

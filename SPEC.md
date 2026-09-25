@@ -35,7 +35,7 @@ Frame rate is not stored in CMX3600. It is inferred: drop-frame → 29.97; other
 
 ## Preview content
 1. **Summary**: title, FCM, assumed frame rate, event count, record start/end, total duration, track list.
-2. **Timeline graphic**: SVG, one lane per track, clips placed by record in/out, dissolves shaded, marker pins, time ruler. Scales to window width; lanes collapse for very long EDLs.
+2. **Timeline graphic**: SVG, one lane per track, clips placed by record in/out, dissolves shaded, marker pins, time ruler. Scales to window width; hover shows event details.
 3. **Event table**: #, reel, track, transition, source in, source out, record in, record out, duration, speed, clip name. Clip comments shown beneath each row.
 4. **Markers** and **Unparsed lines** sections when present.
 
@@ -45,7 +45,7 @@ Follows the system light/dark appearance. Target render time is under 200 ms for
 - **`EDLKit`** (Swift package): parser, timecode maths, HTML/SVG renderer. Pure Swift with no AppKit, so tests also run on Linux.
 - **`EDLPreview.app`**: minimal SwiftUI host app (about/instructions window). Declares an imported UTType `com.cmx3600.edl` (extension `edl`, conforms to `public.plain-text`).
 - **`EDLPreviewExtension.appex`**: Quick Look preview extension using data-based previews (`QLPreviewReply` returning HTML).
-- Project file generated with XcodeGen from `project.yml`; no hand-edited `.pbxproj`.
+- Project file generated with XcodeGen from `project.yml` (Info.plists and entitlements are generated too); no hand-edited `.pbxproj`.
 - Minimum macOS 13.
 
 ## CI / CD (GitHub Actions)
@@ -55,7 +55,7 @@ Follows the system light/dark appearance. Target render time is under 200 ms for
 
 ## Testing
 - Fixture EDLs (hand-written plus anonymised NLE exports) covering every row in the input table, including long roll names and malformed lines.
-- Unit tests: tokenizer, timecode (DF/NDF, rollover past 24 h), event merging, frame-rate inference, HTML output snapshots.
+- Unit tests: tokenizer, timecode (DF/NDF, rollover past 24 h), event merging, frame-rate inference, HTML content checks, 5,000-event performance check.
 - Manual check on a Mac: `qlmanage -p sample.edl`.
 
 ## Installation (ad-hoc build)
