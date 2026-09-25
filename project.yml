@@ -34,6 +34,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: EDL Preview
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.video
         NSHumanReadableCopyright: Copyright © claude-coder-collab. MIT licence.
         UTImportedTypeDeclarations:
@@ -60,6 +62,8 @@ targets:
       path: Extension/Info.plist
       properties:
         CFBundleDisplayName: EDL Preview
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.quicklook.preview
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewProvider
