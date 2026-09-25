@@ -123,7 +123,7 @@ public struct HTMLRenderer: Sendable {
                 String(format: "%.1f fps (%.0f%%)", speed, speed / document.frameRate.framesPerSecond * 100)
             } ?? ""
         })
-        let columns: [Column] = [
+        var columns: [Column] = [
             ("#", "num", { number, index, _ in index == 0 ? String(number) : "" }),
             ("Reel", "reel", { _, _, line in line.reel }),
             ("Track", "", { _, _, line in line.track }),
@@ -133,9 +133,11 @@ public struct HTMLRenderer: Sendable {
             ("Rec In", "tc", { _, _, line in line.recordIn.description }),
             ("Rec Out", "tc", { _, _, line in line.recordOut.description }),
             ("Duration", "tc", { _, _, line in document.durationString(document.recordRange(of: line).count) }),
-        ] + (document.lines.contains { $0.speed != nil } ? [speed] : []) + [
-            ("Clip", "clip", { _, _, line in line.clipName ?? "" }),
         ]
+        if document.lines.contains(where: { $0.speed != nil }) {
+            columns.append(speed)
+        }
+        columns.append(("Clip", "clip", { _, _, line in line.clipName ?? "" }))
         var html = "<section><h2>Events</h2><div class=\"scroll\"><table class=\"events\"><thead><tr>"
         html += columns.map { "<th>\($0.header)</th>" }.joined()
         html += "</tr></thead>"
