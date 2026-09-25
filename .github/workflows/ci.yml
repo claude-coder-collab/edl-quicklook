@@ -93,6 +93,22 @@ jobs:
           test -z "$(ls crash-reports)"
           grep -q EDLPreviewExtension ql-out/extension.log
 
+      - name: Timeline zoom interaction test
+        continue-on-error: true
+        run: |
+          FIXTURE=EDLKit/Tests/EDLKitTests/Fixtures/six_digit_long_reels.edl
+          qlmanage -p "$FIXTURE" > ql-out/qlmanage-zoom.txt 2>&1 &
+          QL=$!
+          sleep 8
+          screencapture -x ql-out/zoom-1-before.png
+          swift ci/click-text.swift ql-out/zoom-1-before.png "8×" click || true
+          sleep 2
+          screencapture -x ql-out/zoom-2-after-click.png
+          swift ci/click-text.swift ql-out/zoom-1-before.png "8×" scroll || true
+          sleep 2
+          screencapture -x ql-out/zoom-3-after-scroll.png
+          kill $QL 2>/dev/null || true
+
       - name: Import signing certificate
         if: env.NOTARIZE == 'true'
         env:

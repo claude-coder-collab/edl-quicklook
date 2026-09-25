@@ -62,10 +62,33 @@ struct RendererTests {
         #expect(HTMLRenderer.em(7.91) == "8.0em")
     }
 
+    func ruler(_ html: String, zoom: Int) throws -> String {
+        try #require(html.components(separatedBy: "<svg class=\"ruler z\(zoom)\"").dropFirst().first?.components(separatedBy: "</svg>").first)
+    }
+
     @Test func rulerTicksStayReadable() throws {
         let html = HTMLRenderer().render(try fixture("six_digit_long_reels"))
-        let ruler = try #require(html.components(separatedBy: "<svg class=\"ruler\"").last?.components(separatedBy: "</svg>").first)
-        #expect(occurrences(of: "<text", in: ruler) <= 7)
+        #expect(occurrences(of: "<text", in: try ruler(html, zoom: 1)) <= 7)
+    }
+
+    @Test func timelineHasZoomLevelsWithDenserRulers() throws {
+        let html = HTMLRenderer().render(try fixture("six_digit_long_reels"))
+        #expect(occurrences(of: "<input type=\"radio\" name=\"zoom\"", in: html) == HTMLRenderer.zoomLevels.count)
+        #expect(html.contains("<input type=\"radio\" name=\"zoom\" id=\"z1\" checked>"))
+        #expect(occurrences(of: " checked>", in: html) == 1)
+        for zoom in HTMLRenderer.zoomLevels {
+            #expect(html.contains("<label for=\"z\(zoom)\">\(zoom)×</label>"))
+            #expect(html.contains("#z\(zoom):checked~.tl .tl-inner{width:\(zoom * 100)%}"))
+        }
+        let ticks = try HTMLRenderer.zoomLevels.map { occurrences(of: "<text", in: try ruler(html, zoom: $0)) }
+        #expect(ticks == ticks.sorted())
+        #expect(ticks.last! > ticks.first!)
+    }
+
+    @Test func laneLabelsLineUpWithLanes() throws {
+        let html = HTMLRenderer().render(try fixture("resolve_cuts"))
+        #expect(occurrences(of: "<div class=\"lbl-lane\">", in: html) == occurrences(of: "<svg class=\"lane\"", in: html))
+        #expect(occurrences(of: "<div class=\"lbl-markers\">", in: html) == occurrences(of: "<svg class=\"markers\"", in: html))
     }
 
     @Test func fallsBackToFileNameAndShowsUnparsed() {

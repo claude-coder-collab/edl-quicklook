@@ -4,13 +4,15 @@ public struct HTMLRenderer: Sendable {
     public var laneHeight = 22
     public var maxTicks = 6
 
+    public static let zoomLevels = [1, 2, 4, 8, 16]
+
     public init() {}
 
     public func render(_ document: EDLDocument, fileName: String? = nil) -> String {
         let title = document.title ?? fileName ?? "Untitled EDL"
         var html: [String] = []
         html.append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>\(escape(title))</title>")
-        html.append("<style>\(Self.stylesheet)</style></head><body>")
+        html.append("<style>\(Self.stylesheet)\n\(Self.zoomStylesheet)</style></head><body>")
         html.append("<header><h1>\(escape(title))</h1>\(summary(document))</header>")
         html.append(timeline(document))
         html.append(eventTable(document))
@@ -53,8 +55,10 @@ public struct HTMLRenderer: Sendable {
             .map { (document.recordPosition($0.timecode), $0) }
             .filter { extent.contains($0.0) || $0.0 == extent.upperBound }
 
-        var rows: [String] = []
-        rows.append("<div class=\"label\"></div><svg class=\"ruler\" height=\"20\">\(ruler(document, extent: extent, percent: percent))</svg>")
+        var labels = ["<div class=\"lbl-ruler\"></div>"]
+        var rows = Self.zoomLevels.map { zoom in
+            "<svg class=\"ruler z\(zoom)\" height=\"20\">\(ruler(document, extent: extent, maxTicks: maxTicks * zoom, percent: percent))</svg>"
+        }
 
         for lane in lanes {
             var shapes: [String] = []
@@ -83,7 +87,8 @@ public struct HTMLRenderer: Sendable {
             for (position, _) in markerPositions {
                 shapes.append("<line class=\"mline\" x1=\"\(percent(position))\" x2=\"\(percent(position))\" y1=\"0\" y2=\"\(laneHeight)\"/>")
             }
-            rows.append("<div class=\"label\">\(escape(lane.description))</div><svg class=\"lane\" height=\"\(laneHeight)\">\(shapes.joined())</svg>")
+            labels.append("<div class=\"lbl-lane\">\(escape(lane.description))</div>")
+            rows.append("<svg class=\"lane\" height=\"\(laneHeight)\">\(shapes.joined())</svg>")
         }
 
         if !markerPositions.isEmpty {
@@ -91,12 +96,20 @@ public struct HTMLRenderer: Sendable {
                 "<circle cx=\"\(percent(position))\" cy=\"7\" r=\"5\" fill=\"\(MarkerColor.css(marker.color))\">"
                     + "<title>\(escape("\(marker.timecode) \(marker.note)"))</title></circle>"
             }.joined()
-            rows.append("<div class=\"label\">M</div><svg class=\"markers\" height=\"14\">\(pins)</svg>")
+            labels.append("<div class=\"lbl-markers\">M</div>")
+            rows.append("<svg class=\"markers\" height=\"14\">\(pins)</svg>")
         }
-        return "<section class=\"timeline\">\(rows.joined())</section>"
+
+        let radios = Self.zoomLevels.map { zoom in
+            "<input type=\"radio\" name=\"zoom\" id=\"z\(zoom)\"\(zoom == 1 ? " checked" : "")>"
+        }.joined()
+        let buttons = Self.zoomLevels.map { "<label for=\"z\($0)\">\($0)×</label>" }.joined()
+        return "<section class=\"timeline\">\(radios)<div class=\"zoom\" title=\"Zoom\">\(buttons)</div>"
+            + "<div class=\"tl\"><div class=\"tl-labels\">\(labels.joined())</div>"
+            + "<div class=\"tl-scroll\"><div class=\"tl-inner\">\(rows.joined())</div></div></div></section>"
     }
 
-    func ruler(_ document: EDLDocument, extent: Range<Int>, percent: (Int) -> String) -> String {
+    func ruler(_ document: EDLDocument, extent: Range<Int>, maxTicks: Int, percent: (Int) -> String) -> String {
         let rate = document.frameRate.timebase
         let totalSeconds = Double(extent.count) / Double(rate)
         let steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14400]
@@ -230,6 +243,14 @@ public struct HTMLRenderer: Sendable {
         return result
     }
 
+    static var zoomStylesheet: String {
+        zoomLevels.map { zoom in
+            "#z\(zoom):checked~.zoom label[for=z\(zoom)]{background:var(--fg);color:var(--bg);border-color:var(--fg)}"
+                + "#z\(zoom):checked~.tl .tl-inner{width:\(zoom * 100)%}"
+                + "#z\(zoom):checked~.tl .ruler.z\(zoom){display:block}"
+        }.joined(separator: "\n")
+    }
+
     static let stylesheet = """
     :root{color-scheme:light dark;--bg:#fff;--fg:#1d1d1f;--muted:#6e6e73;--line:#d2d2d7;--lane:#f2f2f5;--head:#fafafa}
     @media (prefers-color-scheme:dark){:root{--bg:#1e1e1e;--fg:#f5f5f7;--muted:#98989d;--line:#3a3a3c;--lane:#2a2a2c;--head:#252525}}
@@ -241,9 +262,18 @@ public struct HTMLRenderer: Sendable {
     .summary dt{color:var(--muted);font-size:11px}
     .summary dd{margin:0;font-variant-numeric:tabular-nums}
     .notes{color:var(--muted);margin:8px 0 0;padding-left:18px}
-    .timeline{display:grid;grid-template-columns:2.5em 1fr;row-gap:2px;margin-top:16px}
-    .timeline svg{width:100%;display:block;overflow:visible}
-    .label{color:var(--muted);font-size:11px;align-self:center}
+    .timeline{margin-top:12px;position:relative}
+    .timeline>input{position:absolute;opacity:0;pointer-events:none}
+    .zoom{display:flex;justify-content:flex-end;gap:2px;margin-bottom:4px}
+    .zoom label{font-size:10px;color:var(--muted);padding:1px 7px;border:1px solid var(--line);border-radius:4px;cursor:pointer;user-select:none}
+    .tl{display:flex}
+    .tl-labels{flex:0 0 2.5em}
+    .tl-labels div{color:var(--muted);font-size:11px;display:flex;align-items:center;margin-bottom:2px}
+    .lbl-ruler{height:20px}.lbl-lane{height:22px}.lbl-markers{height:14px}
+    .tl-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+    .tl-inner{width:100%;padding:0 1px}
+    .tl-inner svg{width:100%;display:block;overflow:visible;margin-bottom:2px}
+    .ruler{display:none}
     .lane{background:var(--lane);border-radius:3px}
     .seg{stroke:var(--bg);stroke-width:.5}
     .trans{fill:#fff;opacity:.45}
