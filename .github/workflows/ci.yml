@@ -70,7 +70,12 @@ jobs:
           set -x
           FIXTURE=EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl
           LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-          cp -R "$APP" /Applications/
+          ditto "$APP" "/Applications/EDL Preview.app"
+          codesign --verify --deep --strict -vvvv "$APP" || true
+          codesign --verify --deep --strict -vvvv "/Applications/EDL Preview.app" || true
+          codesign -dvvv "/Applications/EDL Preview.app" 2>&1 | grep -E "Info.plist|flags|CDHash|Sealed" || true
+          ls -la@ "/Applications/EDL Preview.app/Contents/" || true
+          ("/Applications/EDL Preview.app/Contents/MacOS/EDL Preview" & P=$!; sleep 4; kill $P 2>/dev/null; wait $P; echo "direct app exit: $?") 2>&1 | tail -20 || true
           pluginkit -r "$APPEX" || true
           $LSREGISTER -u "$APP" || true
           $LSREGISTER -f -R "/Applications/EDL Preview.app"
@@ -86,12 +91,11 @@ jobs:
           pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
           codesign -d --entitlements - --xml "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex" | plutil -p - || true
           codesign -dvvv "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex" 2>&1 | grep -E "Identifier|Signature|flags|TeamIdentifier|Runtime" || true
-          (timeout 5 "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex/Contents/MacOS/EDLPreviewExtension"; echo "direct launch exit: $?") 2>&1 | tail -20 || true
           qlmanage -r
           mkdir -p ql-out ql-out2
           qlmanage -p -o ql-out "$FIXTURE" || true
           qlmanage -p -c com.cmx3600.edl -o ql-out2 "$FIXTURE" || true
-          log show --last 2m --style compact --info --debug --predicate 'process CONTAINS "EDLPreview" OR eventMessage CONTAINS "EDLPreview" OR subsystem == "com.apple.PlugInKit" OR subsystem == "com.apple.extensionkit" OR (process == "runningboardd" AND eventMessage CONTAINS "EDLPreview")' | tail -80 || true
+          log show --last 2m --style compact --info --debug --predicate 'process CONTAINS "EDLPreview" OR eventMessage CONTAINS "EDLPreview" OR subsystem == "com.apple.PlugInKit" OR subsystem == "com.apple.extensionkit" OR (process == "runningboardd" AND eventMessage CONTAINS "EDLPreview") OR process == "EDL Preview" OR subsystem == "com.apple.sandbox" OR (process == "kernel" AND eventMessage CONTAINS "EDL") OR (process == "amfid") OR (process == "secinitd")' | tail -80 || true
           ls -la ~/Library/Logs/DiagnosticReports/ /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i edl || true
           mkdir -p crash-reports
           cp ~/Library/Logs/DiagnosticReports/*EDL* crash-reports/ 2>/dev/null || true
