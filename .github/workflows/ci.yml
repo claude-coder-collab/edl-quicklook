@@ -92,16 +92,19 @@ jobs:
           codesign -d --entitlements - --xml "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex" | plutil -p - || true
           codesign -dvvv "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex" 2>&1 | grep -E "Identifier|Signature|flags|TeamIdentifier|Runtime" || true
           qlmanage -r
-          mkdir -p ql-out ql-out2
-          qlmanage -p -o ql-out "$FIXTURE" || true
-          qlmanage -p -c com.cmx3600.edl -o ql-out2 "$FIXTURE" || true
+          mkdir -p ql-out
+          qlmanage -p "$FIXTURE" > ql-out/qlmanage.txt 2>&1 &
+          QL=$!
+          sleep 10
+          screencapture -x ql-out/preview.png || true
+          kill $QL 2>/dev/null || true
           log show --last 2m --style compact --info --debug --predicate 'process CONTAINS "EDLPreview" OR eventMessage CONTAINS "EDLPreview" OR subsystem == "com.apple.PlugInKit" OR subsystem == "com.apple.extensionkit" OR (process == "runningboardd" AND eventMessage CONTAINS "EDLPreview") OR process == "EDL Preview" OR subsystem == "com.apple.sandbox" OR (process == "kernel" AND eventMessage CONTAINS "EDL") OR (process == "amfid") OR (process == "secinitd")' | tail -80 || true
           ls -la ~/Library/Logs/DiagnosticReports/ /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i edl || true
           mkdir -p crash-reports
           cp ~/Library/Logs/DiagnosticReports/*EDL* crash-reports/ 2>/dev/null || true
           pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
-          find ql-out ql-out2 -type f -print
-          grep -rl "Timeline 1" ql-out ql-out2
+          cat ql-out/qlmanage.txt
+          ls -la ql-out
 
       - name: Import signing certificate
         if: env.NOTARIZE == 'true'
@@ -159,7 +162,6 @@ jobs:
           path: |
             build.log
             ql-out
-            ql-out2
             crash-reports
           if-no-files-found: ignore
 
