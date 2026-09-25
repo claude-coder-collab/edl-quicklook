@@ -69,8 +69,12 @@ jobs:
         run: |
           set -x
           FIXTURE=EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl
+          LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
           cp -R "$APP" /Applications/
-          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R "/Applications/EDL Preview.app"
+          pluginkit -r "$APPEX" || true
+          $LSREGISTER -u "$APP" || true
+          $LSREGISTER -f -R "/Applications/EDL Preview.app"
+          pluginkit -a "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex"
           open -g "/Applications/EDL Preview.app"
           sleep 5
           osascript -e 'quit app "EDL Preview"' || true
@@ -89,7 +93,9 @@ jobs:
           qlmanage -p -c com.cmx3600.edl -o ql-out2 "$FIXTURE" || true
           log show --last 2m --style compact --info --debug --predicate 'process CONTAINS "EDLPreview" OR eventMessage CONTAINS "EDLPreview" OR subsystem == "com.apple.PlugInKit" OR subsystem == "com.apple.extensionkit" OR (process == "runningboardd" AND eventMessage CONTAINS "EDLPreview")' | tail -80 || true
           ls -la ~/Library/Logs/DiagnosticReports/ /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i edl || true
-          for f in ~/Library/Logs/DiagnosticReports/*EDLPreview*; do [ -f "$f" ] && head -80 "$f"; done || true
+          mkdir -p crash-reports
+          cp ~/Library/Logs/DiagnosticReports/*EDL* crash-reports/ 2>/dev/null || true
+          pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
           find ql-out ql-out2 -type f -print
           grep -rl "Timeline 1" ql-out ql-out2
 
@@ -147,6 +153,8 @@ jobs:
           path: |
             build.log
             ql-out
+            ql-out2
+            crash-reports
           if-no-files-found: ignore
 
   release:
