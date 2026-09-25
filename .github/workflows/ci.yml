@@ -59,9 +59,9 @@ jobs:
         run: |
           test -d "$APPEX"
           codesign --verify --deep --strict --verbose=2 "$APP"
-          plutil -extract NSExtension.NSExtensionPointIdentifier raw "$APPEX/Contents/Info.plist"
-          plutil -extract NSExtension.NSExtensionAttributes.QLSupportedContentTypes json "$APPEX/Contents/Info.plist"
-          plutil -extract UTImportedTypeDeclarations json "$APP/Contents/Info.plist"
+          plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - "$APPEX/Contents/Info.plist"
+          plutil -extract NSExtension.NSExtensionAttributes.QLSupportedContentTypes json -o - "$APPEX/Contents/Info.plist"
+          plutil -extract UTImportedTypeDeclarations json -o - "$APP/Contents/Info.plist"
           codesign -d --entitlements - "$APPEX"
 
       - name: Quick Look smoke test
@@ -142,7 +142,9 @@ jobs:
           rm notarize.zip
 
       - name: Package
-        run: ditto -c -k --keepParent "$APP" EDL-Preview.zip
+        run: |
+          codesign --verify --deep --strict "$APP"
+          ditto -c -k --keepParent "$APP" EDL-Preview.zip
 
       - uses: actions/upload-artifact@v7
         with:
