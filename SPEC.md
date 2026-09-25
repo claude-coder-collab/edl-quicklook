@@ -19,6 +19,7 @@ CMX3600 with the common NLE extensions written by Avid, Premiere Pro, DaVinci Re
 | Title | `TITLE: My Sequence` | Summary |
 | Frame code mode | `FCM: DROP FRAME` / `NON-DROP FRAME` | Summary; drop-frame timecode maths; may change mid-file |
 | Event line | `001  A012_C003_0915XY V  C  14:22:10:05 14:22:15:05 01:00:00:00 01:00:05:00` | Event row |
+| Event number | `001`, `000123`, any number of digits | Shown as written; lines with the same number form one event |
 | Roll/reel name | any length, any non-whitespace characters | Parsed from the right-hand fixed fields, so length is unrestricted |
 | Tracks | `V`, `A`, `A2`, `AA`, `B`, `A/V`, `AA/V`, `A3`… | Mapped to timeline lanes |
 | Transitions | `C`, `D 030`, `W001 030`, `K B`, `K O` | Two-line dissolves/wipes merged into one event |
