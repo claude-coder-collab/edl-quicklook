@@ -36,7 +36,7 @@ Frame rate is not stored in CMX3600. It is inferred: drop-frame → 29.97; other
 
 ## Preview content
 1. **Summary**: title, FCM, assumed frame rate, event count, record start/end, total duration, track list.
-2. **Timeline graphic**: SVG, one lane per track, clips placed by record in/out, dissolves shaded, marker pins, time ruler. Scales to window width; hover shows event details.
+2. **Timeline graphic**: SVG, one lane per track, clips placed by record in/out, dissolves shaded, marker pins, time ruler. Fits the window at 1×; zoom buttons (1×–16×, CSS only, no JavaScript) widen it into a horizontally scrolling strip with fixed lane labels and a ruler per zoom level. Hover shows event details.
 3. **Event table**: #, reel, track, transition, source in, source out, record in, record out, duration, speed, clip name. Clip comments shown beneath each row.
 4. **Markers** and **Unparsed lines** sections when present.
 

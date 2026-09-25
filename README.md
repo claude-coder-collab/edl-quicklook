@@ -1,6 +1,6 @@
 # EDL Quick Look
 
-Quick Look previews for CMX3600 Edit Decision List (`.edl`) files in macOS Finder: a summary, a timeline graphic and an event table, in light or dark mode.
+Quick Look previews for CMX3600 Edit Decision List (`.edl`) files in macOS Finder: a summary, a zoomable timeline and an event table, in light or dark mode.
 
 Understands CMX3600 plus the extras written by Avid, Premiere Pro, DaVinci Resolve and Final Cut: clip names, source files, dissolves, wipes, keys, speed changes (M2), markers (LOC) and roll names of any length. Anything it can't parse is listed at the end rather than dropped. See [SPEC.md](SPEC.md) for details.
 
