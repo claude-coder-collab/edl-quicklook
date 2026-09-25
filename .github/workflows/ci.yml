@@ -102,6 +102,8 @@ jobs:
           sleep 8
           screencapture -x ql-out/zoom-1-before.png
           swift ci/mouse.swift 880 196 click
+          sleep 1
+          swift ci/mouse.swift 880 196 click
           sleep 2
           screencapture -x ql-out/zoom-2-after-click.png
           swift ci/mouse.swift 500 265 scroll-right
