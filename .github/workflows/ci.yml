@@ -65,46 +65,30 @@ jobs:
           codesign -d --entitlements - "$APPEX"
 
       - name: Quick Look smoke test
-        continue-on-error: true
         run: |
-          set -x
-          FIXTURE=EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl
           LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-          ditto "$APP" "/Applications/EDL Preview.app"
-          codesign --verify --deep --strict -vvvv "$APP" || true
-          codesign --verify --deep --strict -vvvv "/Applications/EDL Preview.app" || true
-          codesign -dvvv "/Applications/EDL Preview.app" 2>&1 | grep -E "Info.plist|flags|CDHash|Sealed" || true
-          ls -la@ "/Applications/EDL Preview.app/Contents/" || true
-          ("/Applications/EDL Preview.app/Contents/MacOS/EDL Preview" & P=$!; sleep 4; kill $P 2>/dev/null; wait $P; echo "direct app exit: $?") 2>&1 | tail -20 || true
+          INSTALLED="/Applications/EDL Preview.app"
+          ditto "$APP" "$INSTALLED"
+          codesign --verify --deep --strict "$INSTALLED"
           pluginkit -r "$APPEX" || true
           $LSREGISTER -u "$APP" || true
-          $LSREGISTER -f -R "/Applications/EDL Preview.app"
-          pluginkit -a "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex"
-          open -g "/Applications/EDL Preview.app"
+          $LSREGISTER -f -R "$INSTALLED"
+          open -g "$INSTALLED"
           sleep 5
           osascript -e 'quit app "EDL Preview"' || true
-          pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
-          pluginkit -m -v -p com.apple.quicklook.preview | grep -i edl || true
-          printf 'import UniformTypeIdentifiers\nprint(UTType(filenameExtension: "edl")?.identifier ?? "nil")\nprint(UTType("com.cmx3600.edl")?.conforms(to: .plainText) ?? false)\n' | swift - || true
-          qlmanage -m plugins | grep -i -E "edl|plain-text" || true
-          pluginkit -e use -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
-          pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
-          codesign -d --entitlements - --xml "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex" | plutil -p - || true
-          codesign -dvvv "/Applications/EDL Preview.app/Contents/PlugIns/EDLPreviewExtension.appex" 2>&1 | grep -E "Identifier|Signature|flags|TeamIdentifier|Runtime" || true
+          pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension | grep -q "$INSTALLED"
+          printf 'import UniformTypeIdentifiers\nprint(UTType(filenameExtension: "edl")?.identifier ?? "nil")\n' | swift - | grep -qx com.cmx3600.edl
+          mkdir -p ql-out crash-reports
           qlmanage -r
-          mkdir -p ql-out
-          qlmanage -p "$FIXTURE" > ql-out/qlmanage.txt 2>&1 &
+          qlmanage -p EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl > ql-out/qlmanage.txt 2>&1 &
           QL=$!
           sleep 10
           screencapture -x ql-out/preview.png || true
+          log show --last 1m --style compact --predicate 'process == "EDLPreviewExtension"' > ql-out/extension.log || true
           kill $QL 2>/dev/null || true
-          log show --last 2m --style compact --info --debug --predicate 'process CONTAINS "EDLPreview" OR eventMessage CONTAINS "EDLPreview" OR subsystem == "com.apple.PlugInKit" OR subsystem == "com.apple.extensionkit" OR (process == "runningboardd" AND eventMessage CONTAINS "EDLPreview") OR process == "EDL Preview" OR subsystem == "com.apple.sandbox" OR (process == "kernel" AND eventMessage CONTAINS "EDL") OR (process == "amfid") OR (process == "secinitd")' | tail -80 || true
-          ls -la ~/Library/Logs/DiagnosticReports/ /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i edl || true
-          mkdir -p crash-reports
           cp ~/Library/Logs/DiagnosticReports/*EDL* crash-reports/ 2>/dev/null || true
-          pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
-          cat ql-out/qlmanage.txt
-          ls -la ql-out
+          test -z "$(ls crash-reports)"
+          grep -q EDLPreviewExtension ql-out/extension.log
 
       - name: Import signing certificate
         if: env.NOTARIZE == 'true'

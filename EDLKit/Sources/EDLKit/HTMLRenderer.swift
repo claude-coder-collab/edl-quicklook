@@ -225,7 +225,7 @@ public struct HTMLRenderer: Sendable {
     th,td{padding:3px 8px;white-space:nowrap}
     tbody{border-bottom:1px solid var(--line)}
     .tc,.num{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-    .reel,.clip{white-space:normal;overflow-wrap:anywhere;min-width:8em}
+    .reel,.clip{white-space:normal;overflow-wrap:anywhere;min-width:16ch}
     .detail td{color:var(--muted);white-space:normal;padding-top:0;overflow-wrap:anywhere}
     .swatch{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
     .unparsed{font-family:ui-monospace,Menlo,monospace;background:var(--lane);padding:8px;border-radius:4px;overflow-x:auto}

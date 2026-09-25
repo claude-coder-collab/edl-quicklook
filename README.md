@@ -4,6 +4,8 @@ Quick Look previews for CMX3600 Edit Decision List (`.edl`) files in macOS Finde
 
 Understands CMX3600 plus the extras written by Avid, Premiere Pro, DaVinci Resolve and Final Cut: clip names, source files, dissolves, wipes, keys, speed changes (M2), markers (LOC) and roll names of any length. Anything it can't parse is listed at the end rather than dropped. See [SPEC.md](SPEC.md) for details.
 
+![Quick Look preview of an EDL](docs/preview.png)
+
 Requires macOS 13 or later.
 
 ## Install
