@@ -32,7 +32,7 @@ struct RendererTests {
         let html = HTMLRenderer().render(try fixture("avid_transitions"))
         #expect(html.contains("29.97 DF (assumed)"))
         #expect(html.contains("<rect class=\"trans\""))
-        #expect(html.contains("59.9 fps (200%)"))
+        #expect(html.contains("<td title=\"59.9 fps\">200%</td>"))
         #expect(html.contains("<th>Speed</th>"))
         #expect(html.contains("K O 010"))
         #expect(occurrences(of: "<rect class=\"seg\"", in: html) == 5)
@@ -50,15 +50,16 @@ struct RendererTests {
         #expect(html.contains("<td class=\"reel\">\(longest)</td>"))
         #expect(html.contains("#999999 \(longest)"))
         #expect(html.contains("<th>Speed</th>"))
-        #expect(html.contains("<colgroup><col style=\"width:6em\"><col>"))
+        #expect(html.contains("<colgroup><col style=\"width:4.8em\"><col>"))
     }
 
     @Test func columnWidthsFitTheirContent() {
-        #expect(HTMLRenderer.columnWidth(longest: 3, header: "#") == 4)
-        #expect(HTMLRenderer.columnWidth(longest: 6, header: "#") == 6)
-        #expect(HTMLRenderer.columnWidth(longest: 11, header: "Duration") == 9)
-        #expect(HTMLRenderer.columnWidth(longest: 1, header: "Track") == 5)
-        #expect(HTMLRenderer.em(8.2) == "9em")
+        #expect(HTMLRenderer.columnWidth(longest: 3, header: "#") == 2.9)
+        #expect(HTMLRenderer.columnWidth(longest: 6, header: "#") == 4.8)
+        #expect(HTMLRenderer.columnWidth(longest: 11, header: "Duration") == 7.9)
+        #expect(HTMLRenderer.columnWidth(longest: 1, header: "Track") == 4.1)
+        #expect(HTMLRenderer.em(7.9) == "7.9em")
+        #expect(HTMLRenderer.em(7.91) == "8.0em")
     }
 
     @Test func rulerTicksStayReadable() throws {

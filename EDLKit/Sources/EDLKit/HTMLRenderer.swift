@@ -120,10 +120,8 @@ public struct HTMLRenderer: Sendable {
         typealias Column = (header: String, cssClass: String, width: Double?, value: (Event, Int, EventLine) -> String)
         let lines = document.lines
         let timecodeWidth = Self.columnWidth(longest: 11, header: "Duration")
-        let speed: Column = ("Speed", "", Self.columnWidth(longest: 16, header: "Speed"), { _, _, line in
-            line.speed.map { speed in
-                String(format: "%.1f fps (%.0f%%)", speed, speed / document.frameRate.framesPerSecond * 100)
-            } ?? ""
+        let speed: Column = ("Speed", "", Self.columnWidth(longest: 5, header: "Speed"), { _, _, line in
+            line.speed.map { String(format: "%.0f%%", $0 / document.frameRate.framesPerSecond * 100) } ?? ""
         })
         let numberWidth = Self.columnWidth(longest: document.events.map(\.label.count).max() ?? 1, header: "#")
         let trackWidth = Self.columnWidth(longest: lines.map(\.track.count).max() ?? 1, header: "Track")
@@ -157,7 +155,8 @@ public struct HTMLRenderer: Sendable {
             for (index, line) in event.lines.enumerated() {
                 html += "<tr>" + columns.map { column in
                     let cls = column.cssClass.isEmpty ? "" : " class=\"\(column.cssClass)\""
-                    return "<td\(cls)>\(escape(column.value(event, index, line)))</td>"
+                    let tip = column.header == "Speed" ? line.speed.map { String(format: " title=\"%.1f fps\"", $0) } ?? "" : ""
+                    return "<td\(cls)\(tip)>\(escape(column.value(event, index, line)))</td>"
                 }.joined() + "</tr>"
                 let details = (line.sourceFile.map { ["Source file: \($0)"] } ?? []) + line.comments
                 if !details.isEmpty {
@@ -186,16 +185,17 @@ public struct HTMLRenderer: Sendable {
         return "<section><h2>Unparsed lines</h2><pre class=\"unparsed\">\(lines)</pre></section>"
     }
 
-    static let characterWidth = 0.68
-    static let cellPadding = 1.2
-    static let flexibleColumnMinWidth = 10.0
+    static let characterWidth = 0.62
+    static let cellPadding = 1.0
+    static let flexibleColumnMinWidth = 7.0
 
     static func columnWidth(longest: Int, header: String) -> Double {
-        (Double(max(longest, header.count)) * characterWidth + cellPadding).rounded(.up)
+        ((Double(max(longest, header.count)) * characterWidth + cellPadding) * 10).rounded(.up) / 10
     }
 
     static func em(_ value: Double) -> String {
-        "\(Int(value.rounded(.up)))em"
+        let tenths = Int((value * 10).rounded(.up))
+        return "\(tenths / 10).\(tenths % 10)em"
     }
 
     static func percentString(_ value: Double) -> String {
