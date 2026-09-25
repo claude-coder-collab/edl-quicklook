@@ -2,7 +2,7 @@ import Foundation
 
 public struct HTMLRenderer: Sendable {
     public var laneHeight = 22
-    public var maxTicks = 10
+    public var maxTicks = 6
 
     public init() {}
 
@@ -117,28 +117,39 @@ public struct HTMLRenderer: Sendable {
 
     func eventTable(_ document: EDLDocument) -> String {
         guard !document.events.isEmpty else { return "<p class=\"empty\">No events found.</p>" }
-        typealias Column = (header: String, cssClass: String, value: (Event, Int, EventLine) -> String)
-        let speed: Column = ("Speed", "", { _, _, line in
+        typealias Column = (header: String, cssClass: String, width: Double?, value: (Event, Int, EventLine) -> String)
+        let lines = document.lines
+        let timecodeWidth = Self.columnWidth(longest: 11, header: "Duration")
+        let speed: Column = ("Speed", "", Self.columnWidth(longest: 16, header: "Speed"), { _, _, line in
             line.speed.map { speed in
                 String(format: "%.1f fps (%.0f%%)", speed, speed / document.frameRate.framesPerSecond * 100)
             } ?? ""
         })
+        let numberWidth = Self.columnWidth(longest: document.events.map(\.label.count).max() ?? 1, header: "#")
+        let trackWidth = Self.columnWidth(longest: lines.map(\.track.count).max() ?? 1, header: "Track")
+        let transitionWidth = Self.columnWidth(longest: lines.map(\.transition.code.count).max() ?? 1, header: "Trans")
         var columns: [Column] = [
-            ("#", "num", { event, index, _ in index == 0 ? event.label : "" }),
-            ("Reel", "reel", { _, _, line in line.reel }),
-            ("Track", "", { _, _, line in line.track }),
-            ("Trans", "", { _, _, line in line.transition.code }),
-            ("Src In", "tc", { _, _, line in line.sourceIn.description }),
-            ("Src Out", "tc", { _, _, line in line.sourceOut.description }),
-            ("Rec In", "tc", { _, _, line in line.recordIn.description }),
-            ("Rec Out", "tc", { _, _, line in line.recordOut.description }),
-            ("Duration", "tc", { _, _, line in document.durationString(document.recordRange(of: line).count) }),
+            ("#", "num", numberWidth, { event, index, _ in index == 0 ? event.label : "" }),
+            ("Reel", "reel", nil, { _, _, line in line.reel }),
+            ("Track", "", trackWidth, { _, _, line in line.track }),
+            ("Trans", "", transitionWidth, { _, _, line in line.transition.code }),
+            ("Src In", "tc", timecodeWidth, { _, _, line in line.sourceIn.description }),
+            ("Src Out", "tc", timecodeWidth, { _, _, line in line.sourceOut.description }),
+            ("Rec In", "tc", timecodeWidth, { _, _, line in line.recordIn.description }),
+            ("Rec Out", "tc", timecodeWidth, { _, _, line in line.recordOut.description }),
+            ("Duration", "tc", timecodeWidth, { _, _, line in document.durationString(document.recordRange(of: line).count) }),
         ]
-        if document.lines.contains(where: { $0.speed != nil }) {
+        if lines.contains(where: { $0.speed != nil }) {
             columns.append(speed)
         }
-        columns.append(("Clip", "clip", { _, _, line in line.clipName ?? "" }))
-        var html = "<section><h2>Events</h2><div class=\"scroll\"><table class=\"events\"><thead><tr>"
+        columns.append(("Clip", "clip", nil, { _, _, line in line.clipName ?? "" }))
+        let fixedWidth = columns.compactMap(\.width).reduce(0, +)
+        let flexibleCount = Double(columns.filter { $0.width == nil }.count)
+        let minWidth = fixedWidth + flexibleCount * Self.flexibleColumnMinWidth
+        var html = "<section><h2>Events</h2><div class=\"scroll\">"
+        html += "<table class=\"events\" style=\"min-width:\(Self.em(minWidth))\"><colgroup>"
+        html += columns.map { column in column.width.map { "<col style=\"width:\(Self.em($0))\">" } ?? "<col>" }.joined()
+        html += "</colgroup><thead><tr>"
         html += columns.map { "<th>\($0.header)</th>" }.joined()
         html += "</tr></thead>"
         for event in document.events {
@@ -173,6 +184,18 @@ public struct HTMLRenderer: Sendable {
         guard !document.unparsed.isEmpty else { return "" }
         let lines = document.unparsed.map { "<span class=\"ln\">\($0.lineNumber)</span>\(escape($0.text))" }.joined(separator: "\n")
         return "<section><h2>Unparsed lines</h2><pre class=\"unparsed\">\(lines)</pre></section>"
+    }
+
+    static let characterWidth = 0.68
+    static let cellPadding = 1.2
+    static let flexibleColumnMinWidth = 10.0
+
+    static func columnWidth(longest: Int, header: String) -> Double {
+        (Double(max(longest, header.count)) * characterWidth + cellPadding).rounded(.up)
+    }
+
+    static func em(_ value: Double) -> String {
+        "\(Int(value.rounded(.up)))em"
     }
 
     static func percentString(_ value: Double) -> String {
@@ -229,11 +252,12 @@ public struct HTMLRenderer: Sendable {
     .ruler line{stroke:var(--muted)}
     .scroll{overflow-x:auto}
     table{border-collapse:collapse;width:100%}
+    table.events{table-layout:fixed}
     th{position:sticky;top:0;background:var(--head);text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
     th,td{padding:3px 6px;white-space:nowrap}
     tbody{border-bottom:1px solid var(--line)}
     .tc,.num{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-    .reel,.clip{white-space:normal;overflow-wrap:anywhere;min-width:12ch}
+    .reel,.clip{white-space:normal;overflow-wrap:anywhere}
     .detail td{color:var(--muted);white-space:normal;padding-top:0;overflow-wrap:anywhere}
     .swatch{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
     .unparsed{font-family:ui-monospace,Menlo,monospace;background:var(--lane);padding:8px;border-radius:4px;overflow-x:auto}

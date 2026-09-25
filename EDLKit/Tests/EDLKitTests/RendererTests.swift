@@ -50,6 +50,21 @@ struct RendererTests {
         #expect(html.contains("<td class=\"reel\">\(longest)</td>"))
         #expect(html.contains("#999999 \(longest)"))
         #expect(html.contains("<th>Speed</th>"))
+        #expect(html.contains("<colgroup><col style=\"width:6em\"><col>"))
+    }
+
+    @Test func columnWidthsFitTheirContent() {
+        #expect(HTMLRenderer.columnWidth(longest: 3, header: "#") == 4)
+        #expect(HTMLRenderer.columnWidth(longest: 6, header: "#") == 6)
+        #expect(HTMLRenderer.columnWidth(longest: 11, header: "Duration") == 9)
+        #expect(HTMLRenderer.columnWidth(longest: 1, header: "Track") == 5)
+        #expect(HTMLRenderer.em(8.2) == "9em")
+    }
+
+    @Test func rulerTicksStayReadable() throws {
+        let html = HTMLRenderer().render(try fixture("six_digit_long_reels"))
+        let ruler = try #require(html.components(separatedBy: "<svg class=\"ruler\"").last?.components(separatedBy: "</svg>").first)
+        #expect(occurrences(of: "<text", in: ruler) <= 7)
     }
 
     @Test func fallsBackToFileNameAndShowsUnparsed() {
