@@ -270,7 +270,7 @@ public struct HTMLRenderer: Sendable {
     .tl-labels{flex:0 0 2.5em}
     .tl-labels div{color:var(--muted);font-size:11px;display:flex;align-items:center;margin-bottom:2px}
     .lbl-ruler{height:20px}.lbl-lane{height:22px}.lbl-markers{height:14px}
-    .tl-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+    .tl-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:14px}
     .tl-inner{width:100%;padding:0 1px}
     .tl-inner svg{width:100%;display:block;overflow:visible;margin-bottom:2px}
     .tl-inner svg.ruler{display:none}
