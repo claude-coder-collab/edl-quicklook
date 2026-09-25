@@ -63,7 +63,7 @@ public struct HTMLRenderer: Sendable {
                     let range = document.recordRange(of: line)
                     guard !range.isEmpty else { continue }
                     let tooltip = [
-                        "#\(event.number) \(line.reel)",
+                        "#\(event.label) \(line.reel)",
                         "\(line.recordIn) – \(line.recordOut)",
                         line.transition == .cut ? nil : line.transition.code,
                         line.clipName,
@@ -117,14 +117,14 @@ public struct HTMLRenderer: Sendable {
 
     func eventTable(_ document: EDLDocument) -> String {
         guard !document.events.isEmpty else { return "<p class=\"empty\">No events found.</p>" }
-        typealias Column = (header: String, cssClass: String, value: (Int, Int, EventLine) -> String)
+        typealias Column = (header: String, cssClass: String, value: (Event, Int, EventLine) -> String)
         let speed: Column = ("Speed", "", { _, _, line in
             line.speed.map { speed in
                 String(format: "%.1f fps (%.0f%%)", speed, speed / document.frameRate.framesPerSecond * 100)
             } ?? ""
         })
         var columns: [Column] = [
-            ("#", "num", { number, index, _ in index == 0 ? String(number) : "" }),
+            ("#", "num", { event, index, _ in index == 0 ? event.label : "" }),
             ("Reel", "reel", { _, _, line in line.reel }),
             ("Track", "", { _, _, line in line.track }),
             ("Trans", "", { _, _, line in line.transition.code }),
@@ -146,7 +146,7 @@ public struct HTMLRenderer: Sendable {
             for (index, line) in event.lines.enumerated() {
                 html += "<tr>" + columns.map { column in
                     let cls = column.cssClass.isEmpty ? "" : " class=\"\(column.cssClass)\""
-                    return "<td\(cls)>\(escape(column.value(event.number, index, line)))</td>"
+                    return "<td\(cls)>\(escape(column.value(event, index, line)))</td>"
                 }.joined() + "</tr>"
                 let details = (line.sourceFile.map { ["Source file: \($0)"] } ?? []) + line.comments
                 if !details.isEmpty {

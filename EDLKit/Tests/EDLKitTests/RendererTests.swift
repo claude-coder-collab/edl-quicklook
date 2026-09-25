@@ -38,6 +38,20 @@ struct RendererTests {
         #expect(occurrences(of: "<rect class=\"seg\"", in: html) == 5)
     }
 
+    @Test func keepsEventNumbersAsWrittenAndShowsLongRollNames() throws {
+        let doc = try fixture("six_digit_long_reels")
+        let html = HTMLRenderer().render(doc)
+        for label in ["000001", "000003", "010000", "123456", "999999"] {
+            #expect(html.contains("<td class=\"num\">\(label)</td>"))
+        }
+        #expect(occurrences(of: "<td class=\"num\">000003</td>", in: html) == 1)
+        let longest = try #require(doc.lines.map(\.reel).max { $0.count < $1.count })
+        #expect(longest.count == 200)
+        #expect(html.contains("<td class=\"reel\">\(longest)</td>"))
+        #expect(html.contains("#999999 \(longest)"))
+        #expect(html.contains("<th>Speed</th>"))
+    }
+
     @Test func fallsBackToFileNameAndShowsUnparsed() {
         let html = HTMLRenderer().render(EDLParser.parse("nonsense <b>"), fileName: "cut.edl")
         #expect(html.contains("<h1>cut.edl</h1>"))

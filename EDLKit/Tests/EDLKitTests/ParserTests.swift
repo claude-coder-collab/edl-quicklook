@@ -59,6 +59,60 @@ struct ParserTests {
         #expect(doc.events[0].lines[0].recordIn.dropFrame)
     }
 
+    @Test func sixDigitEventsAndLongRollNames() throws {
+        let doc = try fixture("six_digit_long_reels")
+        #expect(doc.unparsed.isEmpty)
+        #expect(doc.frameRate == FrameRate(timebase: 25, dropFrame: false))
+        #expect(doc.events.map(\.number) == [1, 2, 3, 10_000, 123_456, 999_999])
+        #expect(doc.events.map(\.label) == ["000001", "000002", "000003", "010000", "123456", "999999"])
+        #expect(doc.events.flatMap(\.lines).map(\.reel.count) == [8, 64, 64, 100, 200, 2, 200])
+
+        let dissolve = doc.events[2]
+        #expect(dissolve.lines.count == 2)
+        #expect(dissolve.lines[1].transition == .dissolve(frames: 25))
+        #expect(dissolve.lines[1].clipName == "one-hundred.mov")
+        #expect(dissolve.lines[1].speed == 50)
+        #expect(dissolve.lines[0].speed == nil)
+
+        #expect(doc.events[3].lines[0].lanes == [.audio(2)])
+        #expect(doc.events[4].lines[0].lanes == [.video(1), .audio(1), .audio(2)])
+        #expect(doc.markers.map(\.note) == ["Long roll marker"])
+        #expect(doc.string(try #require(doc.recordExtent).upperBound) == "01:00:20:00")
+    }
+
+    @Test(arguments: ["1", "12", "123", "1234", "12345", "123456", "1234567", "0000000042"])
+    func eventNumbersOfAnyLength(_ label: String) throws {
+        let doc = EDLParser.parse("\(label)  R  V  C  00:00:00:00 00:00:01:00 01:00:00:00 01:00:01:00")
+        let event = try #require(doc.events.first)
+        #expect(event.label == label)
+        #expect(event.number == Int(label))
+    }
+
+    @Test func oversizedEventNumberIsUnparsedNotFatal() {
+        let doc = EDLParser.parse("99999999999999999999999  R  V  C  00:00:00:00 00:00:01:00 01:00:00:00 01:00:01:00")
+        #expect(doc.events.isEmpty)
+        #expect(doc.unparsed.count == 1)
+    }
+
+    @Test(arguments: [4, 8, 9, 32, 129, 1_000])
+    func rollNamesOfAnyLength(_ length: Int) throws {
+        let reel = String(repeating: "R", count: length - 1) + "9"
+        let doc = EDLParser.parse("000001  \(reel)  V  D 030  00:00:00:00 00:00:01:00 01:00:00:00 01:00:01:00\nM2   \(reel)   012.5   00:00:00:00")
+        let line = try #require(doc.events.first?.lines.first)
+        #expect(line.reel == reel)
+        #expect(line.transition == .dissolve(frames: 30))
+        #expect(line.speed == 12.5)
+    }
+
+    @Test(arguments: ["C", "V", "D", "K", "B", "AA", "W001", "030", "BL", "AX"])
+    func rollNamesThatLookLikeOtherFields(_ reel: String) throws {
+        let doc = EDLParser.parse("000001  \(reel)  V  C  00:00:00:00 00:00:01:00 01:00:00:00 01:00:01:00")
+        let line = try #require(doc.events.first?.lines.first)
+        #expect(line.reel == reel)
+        #expect(line.track == "V")
+        #expect(line.transition == .cut)
+    }
+
     @Test(arguments: [
         ("C", Transition.cut, 1), ("D 030", .dissolve(frames: 30), 2), ("W012 045", .wipe(code: "W012", frames: 45), 2),
         ("K", .key(kind: nil, frames: nil), 1), ("K B", .key(kind: "B", frames: nil), 2),

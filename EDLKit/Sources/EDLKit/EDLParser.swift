@@ -27,7 +27,7 @@ public enum EDLParser {
             .map { $0 }
     }
 
-    static func parseEventLine(_ line: Substring, lineNumber: Int, dropFrame: Bool) -> (number: Int, line: EventLine)? {
+    static func parseEventLine(_ line: Substring, lineNumber: Int, dropFrame: Bool) -> (number: Int, label: String, line: EventLine)? {
         let tokens = line.split(whereSeparator: \.isWhitespace)
         guard tokens.count >= 8,
               tokens[0].allSatisfy(\.isASCIIDigit), let number = Int(tokens[0])
@@ -39,7 +39,7 @@ public enum EDLParser {
         let remaining = middle.dropLast(consumed)
         let track = String(remaining[remaining.count - 1])
         let reel = remaining.dropLast().joined(separator: " ")
-        return (number, EventLine(
+        return (number, String(tokens[0]), EventLine(
             lineNumber: lineNumber,
             reel: reel,
             track: track,
@@ -107,11 +107,11 @@ private struct ParserState {
             if !consumeSpeed(line) { unparsed(line, lineNumber) }
         } else if upper.hasPrefix("SPLIT:") || upper.hasPrefix("AUD ") {
             if !appendComment(line) { unparsed(line, lineNumber) }
-        } else if let (number, eventLine) = EDLParser.parseEventLine(Substring(line), lineNumber: lineNumber, dropFrame: dropFrame) {
+        } else if let (number, label, eventLine) = EDLParser.parseEventLine(Substring(line), lineNumber: lineNumber, dropFrame: dropFrame) {
             if let last = document.events.indices.last, document.events[last].number == number {
                 document.events[last].lines.append(eventLine)
             } else {
-                document.events.append(Event(number: number, lines: [eventLine]))
+                document.events.append(Event(number: number, label: label, lines: [eventLine]))
             }
             clipNameTarget = nil
         } else {

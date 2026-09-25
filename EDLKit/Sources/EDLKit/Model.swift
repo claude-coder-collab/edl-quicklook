@@ -90,7 +90,14 @@ public struct EventLine: Hashable, Sendable {
 
 public struct Event: Hashable, Sendable {
     public var number: Int
+    public var label: String
     public var lines: [EventLine]
+
+    public init(number: Int, label: String? = nil, lines: [EventLine]) {
+        self.number = number
+        self.label = label ?? String(number)
+        self.lines = lines
+    }
 }
 
 public struct Marker: Hashable, Sendable {

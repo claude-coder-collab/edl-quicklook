@@ -80,12 +80,15 @@ jobs:
           printf 'import UniformTypeIdentifiers\nprint(UTType(filenameExtension: "edl")?.identifier ?? "nil")\n' | swift - | grep -qx com.cmx3600.edl
           mkdir -p ql-out crash-reports
           qlmanage -r
-          qlmanage -p EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl > ql-out/qlmanage.txt 2>&1 &
-          QL=$!
-          sleep 10
-          screencapture -x ql-out/preview.png || true
-          log show --last 1m --style compact --predicate 'process == "EDLPreviewExtension"' > ql-out/extension.log || true
-          kill $QL 2>/dev/null || true
+          for name in resolve_cuts six_digit_long_reels; do
+            qlmanage -p "EDLKit/Tests/EDLKitTests/Fixtures/$name.edl" > "ql-out/qlmanage-$name.txt" 2>&1 &
+            QL=$!
+            sleep 8
+            screencapture -x "ql-out/$name.png" || true
+            kill $QL 2>/dev/null || true
+            wait $QL 2>/dev/null || true
+          done
+          log show --last 2m --style compact --predicate 'process == "EDLPreviewExtension"' > ql-out/extension.log || true
           cp ~/Library/Logs/DiagnosticReports/*EDL* crash-reports/ 2>/dev/null || true
           test -z "$(ls crash-reports)"
           grep -q EDLPreviewExtension ql-out/extension.log
