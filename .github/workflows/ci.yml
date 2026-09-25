@@ -67,14 +67,24 @@ jobs:
       - name: Quick Look smoke test
         continue-on-error: true
         run: |
-          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R "$APP"
-          pluginkit -a "$APPEX"
+          set -x
+          FIXTURE=EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl
+          cp -R "$APP" /Applications/
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R "/Applications/EDL Preview.app"
+          open -g "/Applications/EDL Preview.app"
+          sleep 5
+          osascript -e 'quit app "EDL Preview"' || true
+          pluginkit -m -v -i io.github.claude-coder-collab.EDLPreview.PreviewExtension || true
           pluginkit -m -v -p com.apple.quicklook.preview | grep -i edl || true
-          mkdir -p ql-out
+          printf 'import UniformTypeIdentifiers\nprint(UTType(filenameExtension: "edl")?.identifier ?? "nil")\nprint(UTType("com.cmx3600.edl")?.conforms(to: .plainText) ?? false)\n' | swift - || true
+          qlmanage -m plugins | grep -i -E "edl|plain-text" || true
           qlmanage -r
-          qlmanage -p -o ql-out EDLKit/Tests/EDLKitTests/Fixtures/resolve_cuts.edl
-          find ql-out -type f -print
-          grep -rl "Timeline 1" ql-out
+          mkdir -p ql-out ql-out2
+          qlmanage -p -o ql-out "$FIXTURE" || true
+          qlmanage -p -c com.cmx3600.edl -o ql-out2 "$FIXTURE" || true
+          log show --last 2m --style compact --predicate 'subsystem CONTAINS "quicklook" OR process CONTAINS "EDLPreview"' | tail -40 || true
+          find ql-out ql-out2 -type f -print
+          grep -rl "Timeline 1" ql-out ql-out2
 
       - name: Import signing certificate
         if: env.NOTARIZE == 'true'
