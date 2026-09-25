@@ -19,6 +19,7 @@ struct RendererTests {
         #expect(html.contains("<h2>Markers</h2>"))
         #expect(html.contains("class=\"markers\""))
         #expect(!html.contains("Unparsed lines"))
+        #expect(!html.contains("<th>Speed</th>"))
     }
 
     @Test func escapesUserText() throws {
@@ -32,6 +33,7 @@ struct RendererTests {
         #expect(html.contains("29.97 DF (assumed)"))
         #expect(html.contains("<rect class=\"trans\""))
         #expect(html.contains("59.9 fps (200%)"))
+        #expect(html.contains("<th>Speed</th>"))
         #expect(html.contains("K O 010"))
         #expect(occurrences(of: "<rect class=\"seg\"", in: html) == 5)
     }

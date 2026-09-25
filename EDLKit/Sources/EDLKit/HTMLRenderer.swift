@@ -117,32 +117,38 @@ public struct HTMLRenderer: Sendable {
 
     func eventTable(_ document: EDLDocument) -> String {
         guard !document.events.isEmpty else { return "<p class=\"empty\">No events found.</p>" }
-        let headers = ["#", "Reel", "Track", "Trans", "Src In", "Src Out", "Rec In", "Rec Out", "Duration", "Speed", "Clip"]
+        typealias Column = (header: String, cssClass: String, value: (Int, Int, EventLine) -> String)
+        let speed: Column = ("Speed", "", { _, _, line in
+            line.speed.map { speed in
+                String(format: "%.1f fps (%.0f%%)", speed, speed / document.frameRate.framesPerSecond * 100)
+            } ?? ""
+        })
+        let columns: [Column] = [
+            ("#", "num", { number, index, _ in index == 0 ? String(number) : "" }),
+            ("Reel", "reel", { _, _, line in line.reel }),
+            ("Track", "", { _, _, line in line.track }),
+            ("Trans", "", { _, _, line in line.transition.code }),
+            ("Src In", "tc", { _, _, line in line.sourceIn.description }),
+            ("Src Out", "tc", { _, _, line in line.sourceOut.description }),
+            ("Rec In", "tc", { _, _, line in line.recordIn.description }),
+            ("Rec Out", "tc", { _, _, line in line.recordOut.description }),
+            ("Duration", "tc", { _, _, line in document.durationString(document.recordRange(of: line).count) }),
+        ] + (document.lines.contains { $0.speed != nil } ? [speed] : []) + [
+            ("Clip", "clip", { _, _, line in line.clipName ?? "" }),
+        ]
         var html = "<section><h2>Events</h2><div class=\"scroll\"><table class=\"events\"><thead><tr>"
-        html += headers.map { "<th>\($0)</th>" }.joined()
+        html += columns.map { "<th>\($0.header)</th>" }.joined()
         html += "</tr></thead>"
         for event in document.events {
             html += "<tbody class=\"event\">"
             for (index, line) in event.lines.enumerated() {
-                let duration = document.recordRange(of: line).count
-                let speed = line.speed.map { speed -> String in
-                    let percentage = speed / document.frameRate.framesPerSecond * 100
-                    return String(format: "%.1f fps (%.0f%%)", speed, percentage)
-                } ?? ""
-                let cells = [
-                    index == 0 ? String(event.number) : "",
-                    line.reel, line.track, line.transition.code,
-                    line.sourceIn.description, line.sourceOut.description,
-                    line.recordIn.description, line.recordOut.description,
-                    document.durationString(duration), speed, line.clipName ?? "",
-                ]
-                let classes = ["num", "reel", "", "", "tc", "tc", "tc", "tc", "tc", "", "clip"]
-                html += "<tr>" + zip(cells, classes).map { cell, cls in
-                    "<td\(cls.isEmpty ? "" : " class=\"\(cls)\"")>\(escape(cell))</td>"
+                html += "<tr>" + columns.map { column in
+                    let cls = column.cssClass.isEmpty ? "" : " class=\"\(column.cssClass)\""
+                    return "<td\(cls)>\(escape(column.value(event.number, index, line)))</td>"
                 }.joined() + "</tr>"
                 let details = (line.sourceFile.map { ["Source file: \($0)"] } ?? []) + line.comments
                 if !details.isEmpty {
-                    html += "<tr class=\"detail\"><td></td><td colspan=\"\(headers.count - 1)\">"
+                    html += "<tr class=\"detail\"><td></td><td colspan=\"\(columns.count - 1)\">"
                         + details.map(escape).joined(separator: "<br>") + "</td></tr>"
                 }
             }
@@ -222,10 +228,10 @@ public struct HTMLRenderer: Sendable {
     .scroll{overflow-x:auto}
     table{border-collapse:collapse;width:100%}
     th{position:sticky;top:0;background:var(--head);text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
-    th,td{padding:3px 8px;white-space:nowrap}
+    th,td{padding:3px 6px;white-space:nowrap}
     tbody{border-bottom:1px solid var(--line)}
     .tc,.num{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-    .reel,.clip{white-space:normal;overflow-wrap:anywhere;min-width:16ch}
+    .reel,.clip{white-space:normal;overflow-wrap:anywhere;min-width:12ch}
     .detail td{color:var(--muted);white-space:normal;padding-top:0;overflow-wrap:anywhere}
     .swatch{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
     .unparsed{font-family:ui-monospace,Menlo,monospace;background:var(--lane);padding:8px;border-radius:4px;overflow-x:auto}
