@@ -247,7 +247,7 @@ public struct HTMLRenderer: Sendable {
         zoomLevels.map { zoom in
             "#z\(zoom):checked~.zoom label[for=z\(zoom)]{background:var(--fg);color:var(--bg);border-color:var(--fg)}"
                 + "#z\(zoom):checked~.tl .tl-inner{width:\(zoom * 100)%}"
-                + "#z\(zoom):checked~.tl .ruler.z\(zoom){display:block}"
+                + "#z\(zoom):checked~.tl .tl-inner svg.ruler.z\(zoom){display:block}"
         }.joined(separator: "\n")
     }
 
@@ -273,7 +273,7 @@ public struct HTMLRenderer: Sendable {
     .tl-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
     .tl-inner{width:100%;padding:0 1px}
     .tl-inner svg{width:100%;display:block;overflow:visible;margin-bottom:2px}
-    .ruler{display:none}
+    .tl-inner svg.ruler{display:none}
     .lane{background:var(--lane);border-radius:3px}
     .seg{stroke:var(--bg);stroke-width:.5}
     .trans{fill:#fff;opacity:.45}

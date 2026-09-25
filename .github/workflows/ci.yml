@@ -101,10 +101,10 @@ jobs:
           QL=$!
           sleep 8
           screencapture -x ql-out/zoom-1-before.png
-          swift ci/click-text.swift ql-out/zoom-1-before.png "8×" click || true
+          swift ci/mouse.swift 880 196 click
           sleep 2
           screencapture -x ql-out/zoom-2-after-click.png
-          swift ci/click-text.swift ql-out/zoom-1-before.png "8×" scroll || true
+          swift ci/mouse.swift 500 265 scroll-right
           sleep 2
           screencapture -x ql-out/zoom-3-after-scroll.png
           kill $QL 2>/dev/null || true
