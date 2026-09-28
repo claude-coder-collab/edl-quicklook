@@ -46,7 +46,7 @@ Follows the system light/dark appearance. Target render time is under 200 ms for
 - **`EDLKit`** (Swift package): parser, timecode maths, HTML/SVG renderer. Pure Swift with no AppKit, so tests also run on Linux.
 - **`EDLPreview.app`**: minimal SwiftUI host app (about/instructions window). Declares an imported UTType `com.cmx3600.edl` (extension `edl`, conforms to `public.plain-text`).
 - **`EDLPreviewExtension.appex`**: Quick Look preview extension using data-based previews (`QLPreviewReply` returning HTML).
-- Project file generated with XcodeGen from `project.yml` (Info.plists and entitlements are generated too); no hand-edited `.pbxproj`.
+- Project file generated with XcodeGen from `project.yml` (Info.plists are generated too); no hand-edited `.pbxproj`. Entitlements are committed files that `project.yml` points to: `App/EDLPreview.entitlements` (App Sandbox) and `Extension/EDLPreviewExtension.entitlements` (App Sandbox, user-selected files read-only).
 - Minimum macOS 13.
 
 ## CI / CD (GitHub Actions)

@@ -46,8 +46,6 @@ targets:
               public.filename-extension: [edl, EDL]
     entitlements:
       path: App/EDLPreview.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
     scheme: {}
   EDLPreviewExtension:
     type: app-extension
@@ -73,6 +71,3 @@ targets:
             QLSupportedContentTypes: [com.cmx3600.edl]
     entitlements:
       path: Extension/EDLPreviewExtension.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.files.user-selected.read-only: true
