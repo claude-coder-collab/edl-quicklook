@@ -65,7 +65,8 @@ jobs:
           plutil -extract UTImportedTypeDeclarations json -o - "$APP/Contents/Info.plist"
           codesign -d --entitlements - "$APPEX"
           for bundle in "$APP" "$APPEX"; do
-            codesign -d --entitlements - --xml "$bundle" 2>/dev/null | plutil -extract com.apple.security.app-sandbox raw -o - - | grep -qx true || { echo "::error::$bundle is not sandboxed"; exit 1; }
+            codesign -d --entitlements "$RUNNER_TEMP/entitlements.plist" --xml "$bundle"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$RUNNER_TEMP/entitlements.plist")" = true || { echo "::error::$bundle is not sandboxed"; exit 1; }
           done
 
       - name: Quick Look smoke test
