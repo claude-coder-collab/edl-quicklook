@@ -46,7 +46,7 @@ Follows the system light/dark appearance. Target render time is under 200 ms for
 - **`EDLKit`** (Swift package): parser, timecode maths, HTML/SVG renderer. Pure Swift with no AppKit, so tests also run on Linux.
 - **`EDLPreview.app`**: minimal SwiftUI host app (about/instructions window). Declares an imported UTType `com.cmx3600.edl` (extension `edl`, conforms to `public.plain-text`).
 - **`EDLPreviewExtension.appex`**: Quick Look preview extension using data-based previews (`QLPreviewReply` returning HTML).
-- Project file generated with XcodeGen from `project.yml` (Info.plists are generated too); no hand-edited `.pbxproj`. Entitlements are committed files that `project.yml` points to: `App/EDLPreview.entitlements` (App Sandbox) and `Extension/EDLPreviewExtension.entitlements` (App Sandbox, user-selected files read-only).
+- Project file generated with XcodeGen from `project.yml` (Info.plists are generated too); no hand-edited `.pbxproj`. Entitlements are committed files, referenced through each target's `CODE_SIGN_ENTITLEMENTS` setting: `App/EDLPreview.entitlements` (App Sandbox) and `Extension/EDLPreviewExtension.entitlements` (App Sandbox, user-selected files read-only). They are deliberately not declared with XcodeGen's `entitlements:` key, which rewrites the file and, without `properties`, drops the sandbox. CI fails if the built extension is not sandboxed.
 - Minimum macOS 13.
 
 ## CI / CD (GitHub Actions)

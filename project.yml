@@ -30,6 +30,7 @@ targets:
       base:
         PRODUCT_NAME: EDL Preview
         PRODUCT_BUNDLE_IDENTIFIER: io.github.claude-coder-collab.EDLPreview
+        CODE_SIGN_ENTITLEMENTS: App/EDLPreview.entitlements
     info:
       path: App/Info.plist
       properties:
@@ -44,8 +45,6 @@ targets:
             UTTypeConformsTo: [public.plain-text]
             UTTypeTagSpecification:
               public.filename-extension: [edl, EDL]
-    entitlements:
-      path: App/EDLPreview.entitlements
     scheme: {}
   EDLPreviewExtension:
     type: app-extension
@@ -56,6 +55,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.claude-coder-collab.EDLPreview.PreviewExtension
+        CODE_SIGN_ENTITLEMENTS: Extension/EDLPreviewExtension.entitlements
     info:
       path: Extension/Info.plist
       properties:
@@ -69,5 +69,3 @@ targets:
             QLIsDataBasedPreview: true
             QLSupportsSearchableItems: false
             QLSupportedContentTypes: [com.cmx3600.edl]
-    entitlements:
-      path: Extension/EDLPreviewExtension.entitlements
