@@ -46,6 +46,7 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen generate
+          git diff --exit-code -- '*.entitlements'
 
       - name: Build
         run: |
@@ -63,6 +64,10 @@ jobs:
           plutil -extract NSExtension.NSExtensionAttributes.QLSupportedContentTypes json -o - "$APPEX/Contents/Info.plist"
           plutil -extract UTImportedTypeDeclarations json -o - "$APP/Contents/Info.plist"
           codesign -d --entitlements - "$APPEX"
+          for bundle in "$APP" "$APPEX"; do
+            codesign -d --entitlements "$RUNNER_TEMP/entitlements.plist" --xml "$bundle"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$RUNNER_TEMP/entitlements.plist")" = true || { echo "::error::$bundle is not sandboxed"; exit 1; }
+          done
 
       - name: Quick Look smoke test
         run: |
